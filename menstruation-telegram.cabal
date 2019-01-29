@@ -1,0 +1,34 @@
+name:                menstruation-telegram
+version:             0.1.0
+synopsis:            Regel dein Essen. (Telegram bot)
+-- description:
+license:             MIT
+license-file:        LICENSE
+author:              Kierán Meinhardt
+maintainer:          kieran.meinhardt@gmail.com
+copyright:           (c) Kierán Meinhardt 2019
+category:            Web
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+executable menstruation-telegram
+  main-is:             Main.hs
+  other-modules:       Types, Emoji
+  -- other-extensions:
+  build-depends:       base >=4.11 && <5
+                     , ConfigFile
+                     , containers
+                     , filepath
+                     , http-api-data
+                     , http-client
+                     , http-client-tls
+                     , mtl
+                     , regex-tdfa
+                     , safe
+                     , servant-client
+                     , telegram-bot-simple
+                     , text
+                     , time
+  hs-source-dirs:      src
+  default-language:    Haskell2010
