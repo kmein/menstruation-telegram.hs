@@ -1,34 +1,63 @@
-name:                menstruation-telegram
-version:             0.1.0
-synopsis:            Regel dein Essen. (Telegram bot)
+name: menstruation
+version: 0.1.0
+synopsis: Regel dein Essen.
 -- description:
-license:             MIT
-license-file:        LICENSE
-author:              Kierán Meinhardt
-maintainer:          kieran.meinhardt@gmail.com
-copyright:           (c) Kierán Meinhardt 2019
-category:            Web
-build-type:          Simple
-extra-source-files:  ChangeLog.md
-cabal-version:       >=1.10
+license: MIT
+license-file: LICENSE
+author: Kierán Meinhardt
+maintainer: kieran.meinhardt@gmail.com
+copyright: © 2019 Kierán Meinhardt
+category: Web
+build-type: Simple
+extra-source-files: ChangeLog.md
+cabal-version: >=1.10
+
+source-repository head
+  type: git
+  location: https://github.com/kmein/menstruation-telegram.hs
+
+library
+  hs-source-dirs: lib
+  exposed-modules:
+    Menstruation.Menu
+    Menstruation.Mensa
+    Menstruation.Response
+  build-depends:
+    base >=4.11 && <5, emoji, aeson, containers, safe, scientific, text
+  default-language: Haskell2010
+
+library emoji
+  hs-source-dirs: emoji
+  exposed-modules: Emoji
+  build-depends: base >=4.11 && <5
+  default-language: Haskell2010
 
 executable menstruation-telegram
-  main-is:             Main.hs
-  other-modules:       Types, Emoji
+  main-is: Main.hs
   -- other-extensions:
-  build-depends:       base >=4.11 && <5
-                     , ConfigFile
-                     , containers
-                     , filepath
-                     , http-api-data
-                     , http-client
-                     , http-client-tls
-                     , mtl
-                     , regex-tdfa
-                     , safe
-                     , servant-client
-                     , telegram-bot-simple
-                     , text
-                     , time
-  hs-source-dirs:      src
-  default-language:    Haskell2010
+  build-depends:
+    base >=4.11 && <5,
+    menstruation,
+    emoji,
+    ConfigFile,
+    aeson,
+    containers,
+    filepath,
+    http-client,
+    mtl,
+    regex-tdfa,
+    safe,
+    scientific,
+    servant-client,
+    telegram-bot-simple,
+    text,
+    time
+  hs-source-dirs: bot
+  default-language: Haskell2010
+
+test-suite menstruation-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs: test
+  build-depends: base, hspec, QuickCheck, menstruation
+  default-language: Haskell2010

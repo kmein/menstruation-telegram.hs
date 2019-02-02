@@ -1,0 +1,1 @@
+module Menstruation.Response where

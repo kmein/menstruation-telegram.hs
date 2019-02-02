@@ -1,14 +1,23 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, LambdaCase #-}
-module Types where
+{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving, LambdaCase
+  #-}
 
+module Menstruation.Menu where
+
+import Data.Aeson
+import Data.Char
+import qualified Data.Scientific as Scientfic
 import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Text (Text)
 import qualified Data.Text as Text
+import GHC.Generics (Generic)
 import Numeric.Natural
 import Text.Printf
 
 import Emoji
+
+tagOptions :: Options
+tagOptions = defaultOptions {constructorTagModifier = camelTo2 ' ', sumEncoding = UntaggedValue}
 
 class Pretty a where
   pretty :: a -> Text
@@ -19,6 +28,13 @@ class FromEmoji a where
 newtype Cents = Cents
   { unCents :: Natural
   } deriving (Show, Num)
+
+instance FromJSON Cents where
+  parseJSON =
+    withScientific "numbers of cents expected" $ \scientific ->
+      if Scientfic.isInteger scientific
+        then pure $ Cents (truncate scientific)
+        else fail "whole number expected"
 
 instance Pretty Cents where
   pretty x =
@@ -31,7 +47,9 @@ data Meal = Meal
   , tags :: Set Tag
   , price :: Maybe Price
   , allergens :: Set Text
-  } deriving (Show)
+  } deriving (Show, Generic)
+
+instance FromJSON Meal
 
 instance Pretty Meal where
   pretty m =
@@ -47,7 +65,10 @@ data Color
   = Green
   | Yellow
   | Red
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
+
+instance FromJSON Color where
+  parseJSON = genericParseJSON tagOptions
 
 instance FromEmoji Color where
   fromEmoji e
@@ -69,7 +90,10 @@ data Tag
   | Organic
   | SustainableFishing
   | Climate
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Generic)
+
+instance FromJSON Tag where
+  parseJSON = genericParseJSON tagOptions
 
 instance FromEmoji Tag where
   fromEmoji e
@@ -93,7 +117,9 @@ data Price = Price
   { student :: Cents
   , employee :: Cents
   , guest :: Cents
-  } deriving (Show)
+  } deriving (Show, Generic)
+
+instance FromJSON Price
 
 instance Pretty Price where
   pretty = pretty . student

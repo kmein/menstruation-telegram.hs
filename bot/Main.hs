@@ -23,20 +23,17 @@ import Telegram.Bot.Simple.Debug
 import Telegram.Bot.Simple.UpdateParser
 import Text.Regex.TDFA
 
-import Types
 import Emoji
+import Menstruation.Types
 
 apiEndpoint :: IO String
-apiEndpoint =
-  fromMaybe "http://127.0.0.1:80" <$> lookupEnv "MENSTRUATION_ENDPOINT"
+apiEndpoint = fromMaybe "http://127.0.0.1:80" <$> lookupEnv "MENSTRUATION_ENDPOINT"
 
 configurationFile :: IO FilePath
 configurationFile = (</> "config.ini") <$> configurationDirectory
   where
     configurationDirectory =
-      fromMaybe
-        (fail
-           "Please specify configuration directory in variable MENSTRUATION_DIR.") <$>
+      fromMaybe (fail "Please specify configuration directory in variable MENSTRUATION_DIR.") <$>
       lookupEnv "MENSTRUATION_DIR"
 
 configuration :: IO (Either CPError ConfigParser)
@@ -59,24 +56,17 @@ data Filter = Filter
   { maximumPrice :: Maybe Cents
   , allowedColors :: Maybe (Set Color)
   , allowedTags :: Maybe (Set Tag)
-  }
-  deriving (Show)
+  } deriving (Show)
 
 bot :: a -> BotApp a Action
 bot a =
   BotApp
-    { botInitialModel = a
-    , botAction = const . handleUpdate
-    , botHandler = handleAction
-    , botJobs = []
-    }
+    {botInitialModel = a, botAction = const . handleUpdate, botHandler = handleAction, botJobs = []}
 
 handleUpdate :: Telegram.Update -> Maybe Action
 handleUpdate =
   parseUpdate $
-  Help <$ command "help" <|> Mensa <$> command "mensa" <|>
-  Help <$ command "start" <|>
-  menuCommand
+  Help <$ command "help" <|> Mensa <$> command "mensa" <|> Help <$ command "start" <|> menuCommand
   where
     menuCommand = do
       t <- text
@@ -90,28 +80,24 @@ handleAction action conf =
     None -> pure conf
     Help ->
       conf <#
-      (None <$
-       reply
-         (toReplyMessage helpMessage)
-           {replyMessageParseMode = Just Telegram.Markdown})
+      (None <$ reply (toReplyMessage helpMessage) {replyMessageParseMode = Just Telegram.Markdown})
     _ ->
       conf <#
       (None <$
        reply
-         (toReplyMessage (Text.pack (show action)))
-           {replyMessageParseMode = Just Telegram.Markdown})
+         (toReplyMessage (Text.pack (show action))) {replyMessageParseMode = Just Telegram.Markdown})
 
 helpMessage :: Text
 helpMessage =
   Text.unlines $
-  ["*BEFEHLE*"] <> map explain commandDescription
-  <> [mempty, "*LEBENSMITTELAMPEL*"] <> map explain colorDescription
-  <> [mempty, "*KENNZEICHEN*"] <> map explain tagDescription
+  ["*BEFEHLE*"] <> map explain commandDescription <> [mempty, "*LEBENSMITTELAMPEL*"] <>
+  map explain colorDescription <>
+  [mempty, "*KENNZEICHEN*"] <>
+  map explain tagDescription
   where
     explain (x, y) = "`" <> x <> "` – " <> y
     commandDescription =
-      [ ( "/menu " <> Text.singleton seedling <> " 3"
-        , "heutige Speiseangebote (vegan bis 3€)")
+      [ ("/menu " <> Text.singleton seedling <> " 3", "heutige Speiseangebote (vegan bis 3€)")
       , ("/menu tomorrow", "morgige Speiseangebote")
       , ("/menu 2018-10-22", "Speiseangebote für den 22.10.2018")
       , ("/help", "dieser Hilfetext")
@@ -134,15 +120,10 @@ extractFilter :: Text -> Filter
 extractFilter text =
   let p =
         fmap (Cents . truncate . (* 100)) . readMay @Double =<<
-        (replace ',' '.' <$>
-         Text.unpack text =~~ Text.unpack "[0-9]+(,[0-9][0-9]?)?")
+        (replace ',' '.' <$> Text.unpack text =~~ Text.unpack "[0-9]+(,[0-9][0-9]?)?")
       cs = fromEmojis text
       ts = fromEmojis text
-   in Filter
-        { allowedColors = unlessEmpty cs
-        , allowedTags = unlessEmpty ts
-        , maximumPrice = p
-        }
+   in Filter {allowedColors = unlessEmpty cs, allowedTags = unlessEmpty ts, maximumPrice = p}
   where
     replace x y =
       map

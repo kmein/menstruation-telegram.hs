@@ -4,22 +4,27 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, base, ConfigFile, containers, filepath
-      , http-api-data, http-client, http-client-tls, mtl, regex-tdfa
-      , safe, servant-client, stdenv, telegram-bot-simple, text, time
+  f = { mkDerivation, aeson, base, ConfigFile, containers, filepath
+      , hspec, http-client, mtl, QuickCheck, regex-tdfa, safe, scientific
+      , servant-client, stdenv, telegram-bot-simple, text, time
       }:
       mkDerivation {
-        pname = "menstruation-telegram";
+        pname = "menstruation";
         version = "0.1.0";
         src = ./.;
-        isLibrary = false;
+        isLibrary = true;
         isExecutable = true;
-        executableHaskellDepends = [
-          base ConfigFile containers filepath http-api-data http-client
-          http-client-tls mtl regex-tdfa safe servant-client
-          telegram-bot-simple text time
+        libraryHaskellDepends = [
+          aeson base containers safe scientific text
         ];
-        description = "Regel dein Essen. (Telegram bot)";
+        executableHaskellDepends = [
+          aeson base ConfigFile containers filepath http-client mtl
+          regex-tdfa safe scientific servant-client telegram-bot-simple text
+          time
+        ];
+        testHaskellDepends = [ base hspec QuickCheck ];
+        doHaddock = false;
+        description = "Regel dein Essen";
         license = stdenv.lib.licenses.mit;
       };
 
