@@ -1,4 +1,4 @@
-module Emoji where
+module Menstruation.Internal.Emoji where
 
 greenHeart = '\x1F49A'
 

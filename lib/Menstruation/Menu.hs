@@ -5,7 +5,7 @@ module Menstruation.Menu where
 
 import Data.Aeson
 import Data.Char
-import qualified Data.Scientific as Scientfic
+import qualified Data.Scientific as Scientific
 import qualified Data.Set as Set
 import Data.Set (Set)
 import Data.Text (Text)
@@ -14,7 +14,7 @@ import GHC.Generics (Generic)
 import Numeric.Natural
 import Text.Printf
 
-import Emoji
+import Menstruation.Internal.Emoji
 
 tagOptions :: Options
 tagOptions = defaultOptions {constructorTagModifier = camelTo2 ' ', sumEncoding = UntaggedValue}
@@ -27,12 +27,12 @@ class FromEmoji a where
 
 newtype Cents = Cents
   { unCents :: Natural
-  } deriving (Show, Num)
+  } deriving (Eq, Show, Num)
 
 instance FromJSON Cents where
   parseJSON =
     withScientific "numbers of cents expected" $ \scientific ->
-      if Scientfic.isInteger scientific
+      if Scientific.isInteger scientific
         then pure $ Cents (truncate scientific)
         else fail "whole number expected"
 
@@ -42,24 +42,25 @@ instance Pretty Cents where
      in Text.pack (printf "%d,%02d €" e c)
 
 data Meal = Meal
-  { name :: Text
-  , color :: Color
-  , tags :: Set Tag
-  , price :: Maybe Price
-  , allergens :: Set Text
-  } deriving (Show, Generic)
+  { mealName :: Text
+  , mealColor :: Color
+  , mealTags :: Set Tag
+  , mealPrice :: Maybe Price
+  , mealAllergens :: Set Text
+  } deriving (Eq, Show, Generic)
 
-instance FromJSON Meal
+instance FromJSON Meal where
+  parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = map toLower . dropWhile isLower}
 
 instance Pretty Meal where
   pretty m =
     Text.pack $
     printf
       "%s %s _%s_ %s"
-      (pretty $ color m)
-      (maybe mempty pretty $ price m)
-      (name m)
-      (Text.concat . Set.toList . Set.map pretty $ tags m)
+      (pretty $ mealColor m)
+      (maybe mempty pretty $ mealPrice m)
+      (mealName m)
+      (Text.concat . Set.toList . Set.map pretty $ mealTags m)
 
 data Color
   = Green
@@ -117,7 +118,7 @@ data Price = Price
   { student :: Cents
   , employee :: Cents
   , guest :: Cents
-  } deriving (Show, Generic)
+  } deriving (Eq, Show, Generic)
 
 instance FromJSON Price
 

@@ -23,11 +23,8 @@ import Telegram.Bot.Simple.Debug
 import Telegram.Bot.Simple.UpdateParser
 import Text.Regex.TDFA
 
-import Emoji
-import Menstruation.Types
-
-apiEndpoint :: IO String
-apiEndpoint = fromMaybe "http://127.0.0.1:80" <$> lookupEnv "MENSTRUATION_ENDPOINT"
+import Client
+import Menstruation.Response
 
 configurationFile :: IO FilePath
 configurationFile = (</> "config.ini") <$> configurationDirectory
@@ -40,10 +37,10 @@ configuration :: IO (Either CPError ConfigParser)
 configuration = readfile emptyCP =<< configurationFile
 
 data Action
-  = Help
-  | Menu Filter
-         (Maybe Date)
-  | Mensa Text
+  = GetHelp
+  | GetMenu Filter
+            (Maybe Date)
+  | SetMensa Text
   | None
   deriving (Show)
 
@@ -66,19 +63,20 @@ bot a =
 handleUpdate :: Telegram.Update -> Maybe Action
 handleUpdate =
   parseUpdate $
-  Help <$ command "help" <|> Mensa <$> command "mensa" <|> Help <$ command "start" <|> menuCommand
+  GetHelp <$ command "help" <|> SetMensa <$> command "mensa" <|> GetHelp <$ command "start" <|>
+  menuCommand
   where
     menuCommand = do
       t <- text
       case Text.words t of
-        ("/menu":_) -> pure (Menu (extractFilter t) (extractDate t))
+        ("/menu":_) -> pure (GetMenu (extractFilter t) (extractDate t))
         _ -> fail "not that command"
 
 handleAction :: Action -> a -> Eff Action a
 handleAction action conf =
   case action of
     None -> pure conf
-    Help ->
+    GetHelp ->
       conf <#
       (None <$ reply (toReplyMessage helpMessage) {replyMessageParseMode = Just Telegram.Markdown})
     _ ->
@@ -97,23 +95,19 @@ helpMessage =
   where
     explain (x, y) = "`" <> x <> "` – " <> y
     commandDescription =
-      [ ("/menu " <> Text.singleton seedling <> " 3", "heutige Speiseangebote (vegan bis 3€)")
+      [ ("/menu " <> pretty Vegan <> " 3", "heutige Speiseangebote (vegan bis 3€)")
       , ("/menu tomorrow", "morgige Speiseangebote")
       , ("/menu 2018-10-22", "Speiseangebote für den 22.10.2018")
       , ("/help", "dieser Hilfetext")
       , ("/mensa beuth", "Auswahlmenü für die Mensen der Beuth-Hochschule")
       ]
-    colorDescription =
-      [ (Text.singleton greenHeart, "grün")
-      , (Text.singleton yellowHeart, "gelb")
-      , (Text.singleton redHeart, "rot")
-      ]
+    colorDescription = [(pretty Green, "grün"), (pretty Yellow, "gelb"), (pretty Red, "rot")]
     tagDescription =
-      [ (Text.singleton carrot, "vegetarisch")
-      , (Text.singleton seedling, "vegan")
-      , (Text.singleton smilingFaceWithHalo, "bio")
-      , (Text.singleton fish, "nachhaltig gefischt")
-      , (Text.singleton globeShowingAmericas, "klimafreundlich")
+      [ (pretty Vegetarian, "vegetarisch")
+      , (pretty Vegan, "vegan")
+      , (pretty Organic, "bio")
+      , (pretty SustainableFishing, "nachhaltig gefischt")
+      , (pretty Climate, "klimafreundlich")
       ]
 
 extractFilter :: Text -> Filter
