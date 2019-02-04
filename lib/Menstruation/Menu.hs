@@ -1,10 +1,13 @@
-{-# LANGUAGE DeriveGeneric, GeneralizedNewtypeDeriving, LambdaCase
-  #-}
+{-# LANGUAGE RecordWildCards, DeriveGeneric, ViewPatterns,
+  GeneralizedNewtypeDeriving, TypeApplications, LambdaCase,
+  OverloadedStrings #-}
 
 module Menstruation.Menu where
 
+import Control.Monad (replicateM)
 import Data.Aeson
 import Data.Char
+import Data.Maybe (fromMaybe)
 import qualified Data.Scientific as Scientific
 import qualified Data.Set as Set
 import Data.Set (Set)
@@ -12,6 +15,7 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import GHC.Generics (Generic)
 import Numeric.Natural
+import Test.QuickCheck (Arbitrary(..), choose, oneof)
 import Text.Printf
 
 import Menstruation.Internal.Emoji
@@ -25,9 +29,35 @@ class Pretty a where
 class FromEmoji a where
   fromEmoji :: Char -> Maybe a
 
+data Allergen = Allergen
+  { allergenNumber :: Natural
+  , allergenTag :: Maybe Text
+  } deriving (Eq, Ord, Show)
+
+instance FromJSON Allergen where
+  parseJSON =
+    withText "allergen string expected" $ \string ->
+      case reads (Text.unpack string) of
+        [(number, "")] -> pure Allergen {allergenNumber = number, allergenTag = Nothing}
+        [(number, Text.pack -> tag)] ->
+          pure Allergen {allergenNumber = number, allergenTag = Just tag}
+        _ -> fail "allergen must be a number optionally followed by a string"
+
+instance Pretty Allergen where
+  pretty Allergen {..} = Text.pack (show allergenNumber) <> fromMaybe mempty allergenTag
+
+instance Arbitrary Allergen where
+  arbitrary = do
+    allergenNumber <- fromIntegral <$> choose (1 :: Int, 99)
+    allergenTag <- oneof [pure Nothing, Just . Text.singleton <$> choose ('a', 'z')]
+    pure Allergen {..}
+
 newtype Cents = Cents
   { unCents :: Natural
-  } deriving (Eq, Show, Num)
+  } deriving (Eq, Ord, Show, Num)
+
+instance Arbitrary Cents where
+  arbitrary = fromIntegral <$> choose @Int (1, 1000)
 
 instance FromJSON Cents where
   parseJSON =
@@ -46,8 +76,17 @@ data Meal = Meal
   , mealColor :: Color
   , mealTags :: Set Tag
   , mealPrice :: Maybe Price
-  , mealAllergens :: Set Text
+  , mealAllergens :: Set Allergen
   } deriving (Eq, Show, Generic)
+
+instance Arbitrary Meal where
+  arbitrary = do
+    mealName <- oneof $ map pure ["Schlonze", "Pampe", "Schnitzel", "Spaghetti Bolognese"]
+    mealColor <- arbitrary
+    mealTags <- arbitrary
+    mealPrice <- arbitrary
+    mealAllergens <- arbitrary
+    pure Meal {..}
 
 instance FromJSON Meal where
   parseJSON = genericParseJSON defaultOptions {fieldLabelModifier = map toLower . dropWhile isLower}
@@ -66,7 +105,10 @@ data Color
   = Green
   | Yellow
   | Red
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Enum, Generic)
+
+instance Arbitrary Color where
+  arbitrary = oneof $ map pure [Green .. Red]
 
 instance FromJSON Color where
   parseJSON = genericParseJSON tagOptions
@@ -86,12 +128,15 @@ instance Pretty Color where
       Red -> redHeart
 
 data Tag
-  = Vegetarian
+  = Climate
   | Vegan
+  | Vegetarian
   | Organic
   | SustainableFishing
-  | Climate
-  deriving (Show, Eq, Ord, Generic)
+  deriving (Show, Eq, Ord, Enum, Generic)
+
+instance Arbitrary Tag where
+  arbitrary = oneof $ map pure [Climate .. SustainableFishing]
 
 instance FromJSON Tag where
   parseJSON = genericParseJSON tagOptions
@@ -119,6 +164,13 @@ data Price = Price
   , employee :: Cents
   , guest :: Cents
   } deriving (Eq, Show, Generic)
+
+instance Arbitrary Price where
+  arbitrary = do
+    student <- arbitrary
+    employee <- arbitrary
+    guest <- arbitrary
+    pure Price {..}
 
 instance FromJSON Price
 

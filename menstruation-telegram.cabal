@@ -22,14 +22,16 @@ library
     Menstruation.Menu
     Menstruation.Mensa
     Menstruation.Response
+    Menstruation.Settings
   other-modules:
     Menstruation.Internal.Emoji
   build-depends:
-    base >=4.11 && <5, aeson, containers, safe, scientific, text
+    base >=4.11 && <5, aeson, containers, regex-tdfa, safe, scientific, text, time, QuickCheck
   default-language: Haskell2010
 
 executable menstruation-telegram
   main-is: Main.hs
+  other-modules: Client
   -- other-extensions:
   build-depends:
     base >=4.11 && <5,
@@ -40,7 +42,6 @@ executable menstruation-telegram
     filepath,
     http-conduit,
     mtl,
-    regex-tdfa,
     safe,
     scientific,
     telegram-bot-simple,
@@ -53,5 +54,5 @@ test-suite menstruation-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   hs-source-dirs: test
-  build-depends: base, hspec, QuickCheck, menstruation, aeson, aeson-qq
+  build-depends: base, hspec, QuickCheck, menstruation, aeson, aeson-qq, time
   default-language: Haskell2010

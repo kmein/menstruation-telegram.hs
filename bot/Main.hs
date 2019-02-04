@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
 
 module Main where
 
@@ -14,17 +13,16 @@ import Data.Text (Text)
 import qualified Data.Text as Text
 import Data.Time
 import Numeric.Natural
-import Safe (readMay)
 import System.Environment (lookupEnv)
 import System.FilePath
 import qualified Telegram.Bot.API as Telegram
 import Telegram.Bot.Simple
 import Telegram.Bot.Simple.Debug
 import Telegram.Bot.Simple.UpdateParser
-import Text.Regex.TDFA
 
 import Client
 import Menstruation.Response
+import Menstruation.Settings
 
 configurationFile :: IO FilePath
 configurationFile = (</> "config.ini") <$> configurationDirectory
@@ -43,17 +41,6 @@ data Action
   | SetMensa Text
   | None
   deriving (Show)
-
-data Date
-  = Tomorrow
-  | Selected Day
-  deriving (Show)
-
-data Filter = Filter
-  { maximumPrice :: Maybe Cents
-  , allowedColors :: Maybe (Set Color)
-  , allowedTags :: Maybe (Set Tag)
-  } deriving (Show)
 
 bot :: a -> BotApp a Action
 bot a =
@@ -109,35 +96,6 @@ helpMessage =
       , (pretty SustainableFishing, "nachhaltig gefischt")
       , (pretty Climate, "klimafreundlich")
       ]
-
-extractFilter :: Text -> Filter
-extractFilter text =
-  let p =
-        fmap (Cents . truncate . (* 100)) . readMay @Double =<<
-        (replace ',' '.' <$> Text.unpack text =~~ Text.unpack "[0-9]+(,[0-9][0-9]?)?")
-      cs = fromEmojis text
-      ts = fromEmojis text
-   in Filter {allowedColors = unlessEmpty cs, allowedTags = unlessEmpty ts, maximumPrice = p}
-  where
-    replace x y =
-      map
-        (\c ->
-           if c == x
-             then y
-             else c)
-    unlessEmpty xs =
-      if Set.null xs
-        then Nothing
-        else Just xs
-    fromEmojis :: (FromEmoji a, Ord a) => Text -> Set a
-    fromEmojis = Set.fromList . mapMaybe fromEmoji . Text.unpack
-
-extractDate :: Text -> Maybe Date
-extractDate text
-  | "tomorrow" `Text.isInfixOf` text = Just Tomorrow
-  | otherwise =
-    fmap Selected . parseTimeM True defaultTimeLocale "%-Y-%-m-%-d" =<<
-    Text.unpack text =~~ Text.unpack "[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}"
 
 main :: IO ()
 main =
