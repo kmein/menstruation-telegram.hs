@@ -15,7 +15,31 @@ import Data.Time
 import Safe (readMay)
 import Text.Regex.TDFA ((=~~))
 
+import Menstruation.Pretty
 import Menstruation.Response
+
+class FromEmoji a where
+  fromEmoji :: Char -> Maybe a
+
+instance FromEmoji Color where
+  fromEmoji e
+    | p == pretty Green = Just Green
+    | p == pretty Yellow = Just Yellow
+    | p == pretty Red = Just Red
+    | otherwise = Nothing
+    where
+      p = Text.singleton e
+
+instance FromEmoji Tag where
+  fromEmoji e
+    | p == pretty Climate = Just Climate
+    | p == pretty Organic = Just Organic
+    | p == pretty SustainableFishing = Just SustainableFishing
+    | p == pretty Vegan = Just Vegan
+    | p == pretty Vegetarian = Just Vegetarian
+    | otherwise = Nothing
+    where
+      p = Text.singleton e
 
 data Date
   = Tomorrow

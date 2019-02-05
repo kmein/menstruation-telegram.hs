@@ -1,6 +1,9 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, DeriveGeneric #-}
 
-module Menstruation.Mensa where
+module Menstruation.Mensa
+  ( Code(..)
+  , Mensa(..)
+  ) where
 
 import Data.Aeson
 import Data.Char

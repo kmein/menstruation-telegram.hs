@@ -1,11 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Main where
-
 import Control.Applicative ((<|>))
 import Control.Monad ((>=>), replicateM)
 import Control.Monad.Trans (liftIO)
-import Data.ConfigFile
+import Data.Map (Map)
+import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
 import qualified Data.Set as Set
 import Data.Set (Set)
@@ -21,18 +20,11 @@ import Telegram.Bot.Simple.Debug
 import Telegram.Bot.Simple.UpdateParser
 
 import Client
+import Menstruation.Pretty
 import Menstruation.Response
 import Menstruation.Settings
 
-configurationFile :: IO FilePath
-configurationFile = (</> "config.ini") <$> configurationDirectory
-  where
-    configurationDirectory =
-      fromMaybe (fail "Please specify configuration directory in variable MENSTRUATION_DIR.") <$>
-      lookupEnv "MENSTRUATION_DIR"
-
-configuration :: IO (Either CPError ConfigParser)
-configuration = readfile emptyCP =<< configurationFile
+type Model = Maybe Code
 
 data Action
   = GetHelp
@@ -42,7 +34,7 @@ data Action
   | None
   deriving (Show)
 
-bot :: a -> BotApp a Action
+bot :: Model -> BotApp Model Action
 bot a =
   BotApp
     {botInitialModel = a, botAction = const . handleUpdate, botHandler = handleAction, botJobs = []}
@@ -59,15 +51,25 @@ handleUpdate =
         ("/menu":_) -> pure (GetMenu (extractFilter t) (extractDate t))
         _ -> fail "not that command"
 
-handleAction :: Action -> a -> Eff Action a
-handleAction action conf =
+handleAction :: Action -> Model -> Eff Action Model
+handleAction action model =
   case action of
-    None -> pure conf
+    None -> pure model
     GetHelp ->
-      conf <#
+      model <#
       (None <$ reply (toReplyMessage helpMessage) {replyMessageParseMode = Just Telegram.Markdown})
+    GetMenu f date ->
+      model <#
+      case model of
+        Just code -> do
+          response <- liftIO $ getMenu code date
+          let menu = applyFilter f response
+          reply
+            (toReplyMessage (prettyResponse menu)) {replyMessageParseMode = Just Telegram.Markdown}
+          pure None
+        Nothing -> pure (SetMensa mempty)
     _ ->
-      conf <#
+      model <#
       (None <$
        reply
          (toReplyMessage (Text.pack (show action))) {replyMessageParseMode = Just Telegram.Markdown})
@@ -101,4 +103,4 @@ main :: IO ()
 main =
   getEnvToken "MENSTRUATION_TOKEN" >>=
   (Telegram.defaultTelegramClientEnv >=>
-   startBot_ (traceBotDefault (conversationBot Telegram.updateChatId (bot ()))))
+   startBot_ (traceBotDefault (conversationBot Telegram.updateChatId (bot Nothing))))

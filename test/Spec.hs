@@ -10,6 +10,8 @@ import Menstruation.Mensa
 import Menstruation.Menu
 import Menstruation.Settings
 
+import Instances
+
 main =
   hspec $ do
     describe "Menstruation.Menu.Meal" $
@@ -25,10 +27,10 @@ main =
               , mealAllergens = [Allergen {allergenNumber = 34, allergenTag = Just "c"}]
               }
         fromJSON
-          [aesonQQ|{ name: "Gratis Schlonze", color: "green", tags: [], price: null, allergens: [] }|] `shouldBe`
+          [aesonQQ|{ name: "Gratis-Schlonze", color: "green", tags: [], price: null, allergens: [] }|] `shouldBe`
           Success
             Meal
-              { mealName = "Gratis Schlonze"
+              { mealName = "Gratis-Schlonze"
               , mealColor = Green
               , mealTags = []
               , mealPrice = Nothing
